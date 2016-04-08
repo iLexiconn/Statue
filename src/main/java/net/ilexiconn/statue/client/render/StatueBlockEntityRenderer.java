@@ -5,8 +5,11 @@ import net.ilexiconn.statue.server.block.entity.StatueBlockEntity;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 import org.lwjgl.opengl.GL11;
 
+@SideOnly(Side.CLIENT)
 public class StatueBlockEntityRenderer extends TileEntitySpecialRenderer<StatueBlockEntity> {
     private ModelBase voxelModel = new VoxelModel();
 
