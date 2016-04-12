@@ -1,7 +1,6 @@
 package net.ilexiconn.statue.server.block.entity;
 
 import net.ilexiconn.llibrary.client.model.tabula.TabulaModel;
-import net.ilexiconn.llibrary.client.model.tabula.TabulaModelHandler;
 import net.ilexiconn.llibrary.client.model.tabula.container.TabulaModelContainer;
 import net.ilexiconn.llibrary.server.nbt.NBTHandler;
 import net.ilexiconn.llibrary.server.nbt.NBTProperty;
@@ -15,9 +14,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 
 public class StatueBlockEntity extends BlockEntity {
     @NBTProperty
@@ -36,12 +33,8 @@ public class StatueBlockEntity extends BlockEntity {
 
     @Override
     public void onLoad() {
-        try {
-            this.currentModel = TabulaModelHandler.INSTANCE.loadTabulaModel("assets/statue/models/block/test.tbl");
-            this.setTexture(ImageIO.read(Statue.class.getResourceAsStream("/assets/statue/textures/blocks/test.png")), true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        this.currentModel = Statue.CONTAINER_LIST.get(0);
+        this.setTexture(Statue.TEXTURE_LIST.get(this.currentModel), true);
     }
 
     @Override

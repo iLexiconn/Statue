@@ -13,10 +13,7 @@ import net.ilexiconn.statue.server.message.TextureUpdateMessage;
 import net.minecraft.block.Block;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
-import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagIntArray;
-import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.SidedProxy;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
@@ -26,10 +23,10 @@ import net.minecraftforge.fml.common.registry.GameRegistry;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
-import java.lang.reflect.Field;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static net.minecraftforge.fml.common.Mod.EventHandler;
 import static net.minecraftforge.fml.common.Mod.Instance;
@@ -50,6 +47,7 @@ public class Statue {
     public static final File STATUE_DIR = new File(".", "llibrary" + File.separator + "statue");
 
     public static final List<TabulaModelContainer> CONTAINER_LIST = new ArrayList<>();
+    public static final Map<TabulaModelContainer, BufferedImage> TEXTURE_LIST = new HashMap<>();
 
     public static final Block STATUE = new StatueBlock();
     public static final Item STATUE_ITEM = new ItemBlock(Statue.STATUE).setRegistryName(Statue.STATUE.getRegistryName());
@@ -60,15 +58,14 @@ public class Statue {
         GameRegistry.register(Statue.STATUE_ITEM);
         GameRegistry.registerTileEntity(StatueBlockEntity.class, "statue_entity");
         Statue.PROXY.onInit();
-        NBTHandler.INSTANCE.registerNBTParser(TabulaModelContainer.class, new INBTParser<TabulaModelContainer, NBTBase>() {
+        NBTHandler.INSTANCE.registerNBTParser(TabulaModelContainer.class, new INBTParser<TabulaModelContainer, NBTTagCompound>() {
             @Override
-            public TabulaModelContainer parseTag(NBTBase tag) {
-                NBTTagCompound compound = (NBTTagCompound) tag;
-                return new Gson().fromJson(compound.getString("model"), TabulaModelContainer.class);
+            public TabulaModelContainer parseTag(NBTTagCompound tag) {
+                return new Gson().fromJson(tag.getString("model"), TabulaModelContainer.class);
             }
 
             @Override
-            public NBTBase parseValue(TabulaModelContainer value) {
+            public NBTTagCompound parseValue(TabulaModelContainer value) {
                 NBTTagCompound compound = new NBTTagCompound();
                 compound.setString("model", new Gson().toJson(value));
                 return compound;

@@ -16,6 +16,10 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
     private BlockPos pos;
     private BufferedImage texture;
 
+    public TextureUpdateMessage() {
+
+    }
+
     public TextureUpdateMessage(StatueBlockEntity statue) {
         this.texture = statue.texture;
         this.pos = statue.getPos();

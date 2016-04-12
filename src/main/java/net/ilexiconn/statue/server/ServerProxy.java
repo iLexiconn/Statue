@@ -7,8 +7,13 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.ProgressManager;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
+import javax.imageio.ImageIO;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class ServerProxy {
     public void onInit() {
@@ -17,14 +22,12 @@ public class ServerProxy {
     }
 
     public void onPostInit() {
-        if (!Statue.TABULA_DIR.exists()) {
-            Statue.TABULA_DIR.mkdirs();
+        if (Statue.TABULA_DIR.exists()) {
+            this.readDirectory(Statue.TABULA_DIR);
         }
         if (!Statue.STATUE_DIR.exists()) {
             Statue.STATUE_DIR.mkdirs();
         }
-
-        this.readDirectory(Statue.TABULA_DIR);
         this.readDirectory(Statue.STATUE_DIR);
     }
 
@@ -40,14 +43,41 @@ public class ServerProxy {
                 progressBar.step(f.getName());
                 if (f.getName().endsWith(".tbl")) {
                     try {
-                        TabulaModelContainer container = TabulaModelHandler.INSTANCE.loadTabulaModel(f.getAbsolutePath());
+                        InputStream inputStream = new FileInputStream(f);
+                        TabulaModelContainer container = TabulaModelHandler.INSTANCE.loadTabulaModel(this.getModelJsonStream(f.getAbsolutePath(), inputStream));
+                        InputStream textureStream = this.getTextureStream(inputStream);
                         Statue.CONTAINER_LIST.add(container);
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        if (textureStream != null) {
+                            Statue.TEXTURE_LIST.put(container, ImageIO.read(inputStream));
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Failed to load model " + f.getAbsolutePath());
                     }
                 }
             }
             ProgressManager.pop(progressBar);
         }
+    }
+
+    private InputStream getModelJsonStream(String name, InputStream file) throws IOException {
+        ZipInputStream zip = new ZipInputStream(file);
+        ZipEntry entry;
+        while ((entry = zip.getNextEntry()) != null) {
+            if (entry.getName().equals("model.json")) {
+                return zip;
+            }
+        }
+        throw new RuntimeException("No model.json present in " + name);
+    }
+
+    private InputStream getTextureStream(InputStream file) throws IOException {
+        ZipInputStream zip = new ZipInputStream(file);
+        ZipEntry entry;
+        while ((entry = zip.getNextEntry()) != null) {
+            if (entry.getName().equals("texture.png")) {
+                return zip;
+            }
+        }
+        return null;
     }
 }
