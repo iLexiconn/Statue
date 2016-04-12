@@ -22,7 +22,7 @@ public class StatueBlockEntityRenderer extends TileEntitySpecialRenderer<StatueB
         ResourceLocation resourceLocation = entity.getTexture();
         GlStateManager.pushMatrix();
         GlStateManager.translate(x, y, z);
-        if (model == null || resourceLocation == null) {
+        if (model == null) {
             GlStateManager.disableTexture2D();
             GlStateManager.translate(0.5F, -1.735F, 0.5F);
             GL11.glDepthMask(false);
@@ -35,10 +35,17 @@ public class StatueBlockEntityRenderer extends TileEntitySpecialRenderer<StatueB
             this.renderModel(this.voxelModel, 2.65F, 1.0F);
             GlStateManager.enableTexture2D();
         } else {
-            Minecraft.getMinecraft().getTextureManager().bindTexture(resourceLocation);
+            if (resourceLocation == null) {
+                GlStateManager.disableTexture2D();
+            } else {
+                Minecraft.getMinecraft().getTextureManager().bindTexture(resourceLocation);
+            }
             GlStateManager.translate(0.5F, 1.5F, 0.5F);
             GlStateManager.rotate(180.0F, 1.0F, 0.0F, 0.0F);
             this.renderModel(model, 1.0F, 1.0F);
+            if (resourceLocation == null) {
+                GlStateManager.enableTexture2D();
+            }
         }
         GlStateManager.popMatrix();
     }
