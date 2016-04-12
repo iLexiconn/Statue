@@ -39,7 +39,7 @@ public abstract class BlockEntity extends TileEntity implements ITickable {
     }
 
     @Override
-    public final Packet<?> getDescriptionPacket() {
+    public Packet<?> getDescriptionPacket() {
         NBTTagCompound compound = new NBTTagCompound();
         this.writeToNBT(compound);
         return new SPacketUpdateTileEntity(this.pos, 0, compound);
