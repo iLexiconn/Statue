@@ -45,25 +45,30 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
 
     @Override
     public void fromBytes(ByteBuf buf) {
-        buf.writeLong(this.pos.toLong());
-        int width = buf.readInt();
-        int height = buf.readInt();
-        this.texture = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                this.texture.setRGB(x, y, buf.readInt());
+        this.pos = BlockPos.fromLong(buf.readLong());
+        if (buf.readBoolean()) {
+            int width = buf.readInt();
+            int height = buf.readInt();
+            this.texture = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    this.texture.setRGB(x, y, buf.readInt());
+                }
             }
         }
     }
 
     @Override
     public void toBytes(ByteBuf buf) {
-        this.pos = BlockPos.fromLong(buf.readLong());
-        buf.writeInt(texture.getWidth());
-        buf.writeInt(texture.getHeight());
-        for (int x = 0; x < texture.getWidth(); x++) {
-            for (int y = 0; y < texture.getHeight(); y++) {
-                buf.writeInt(texture.getRGB(x, y));
+        buf.writeLong(this.pos.toLong());
+        buf.writeBoolean(this.texture != null);
+        if (this.texture != null) {
+            buf.writeInt(this.texture.getWidth());
+            buf.writeInt(this.texture.getHeight());
+            for (int x = 0; x < this.texture.getWidth(); x++) {
+                for (int y = 0; y < this.texture.getHeight(); y++) {
+                    buf.writeInt(this.texture.getRGB(x, y));
+                }
             }
         }
     }

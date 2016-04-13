@@ -34,7 +34,7 @@ public class StatueBlockEntity extends BlockEntity {
     @Override
     public void onLoad() {
         this.currentModel = Statue.CONTAINER_LIST.get(0);
-        this.setTexture(Statue.TEXTURE_LIST.get(this.currentModel), true);
+        this.setTexture(Statue.TEXTURE_LIST.get(this.currentModel), false);
     }
 
     @Override
