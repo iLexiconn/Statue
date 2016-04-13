@@ -14,15 +14,32 @@ import java.awt.image.BufferedImage;
 
 public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> {
     private BlockPos pos;
-    private BufferedImage texture;
+    private int[][] texture;
+    private int startX;
+    private int startY;
+    private int fullWidth;
+    private int fullHeight;
 
     public TextureUpdateMessage() {
-
     }
 
-    public TextureUpdateMessage(StatueBlockEntity statue) {
-        this.texture = statue.texture;
+    public TextureUpdateMessage(StatueBlockEntity statue, int sectionX, int sectionY) {
         this.pos = statue.getPos();
+        this.startX = sectionX * 256;
+        this.startY = sectionY * 256;
+        BufferedImage texture = statue.texture;
+        if (texture != null) {
+            int width = Math.min(this.startX + 256, texture.getWidth());
+            int height = Math.min(this.startY + 256, texture.getHeight());
+            this.texture = new int[width - this.startX][height - this.startY];
+            for (int x = this.startX; x < width; x++) {
+                for (int y = this.startY; y < height; y++) {
+                    this.texture[x - this.startX][y - this.startY] = texture.getRGB(x, y);
+                }
+            }
+            this.fullWidth = texture.getWidth();
+            this.fullHeight = texture.getHeight();
+        }
     }
 
     @Override
@@ -39,20 +56,42 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
         TileEntity tile = player.worldObj.getTileEntity(message.pos);
         if (tile instanceof StatueBlockEntity) {
             StatueBlockEntity statue = (StatueBlockEntity) tile;
-            statue.setTexture(message.texture, sync);
+            int[][] messageTexture = message.texture;
+            if (messageTexture != null) {
+                BufferedImage texture = statue.texture;
+                if (texture == null) {
+                    texture = new BufferedImage(message.fullWidth, message.fullHeight, BufferedImage.TYPE_INT_RGB);
+                }
+                for (int x = 0; x < messageTexture.length; x++) {
+                    for (int y = 0; y < messageTexture[0].length; y++) {
+                        texture.setRGB(message.startX + x, message.startY + y, messageTexture[x][y]);
+                    }
+                }
+                if ((message.startX * 256) + messageTexture.length >= message.fullWidth && (message.startY * 256) + messageTexture[0].length >= message.fullHeight) {
+                    statue.setTexture(texture, sync);
+                } else {
+                    statue.texture = texture;
+                }
+            } else {
+                statue.setTexture(null, sync);
+            }
         }
     }
 
     @Override
     public void fromBytes(ByteBuf buf) {
         this.pos = BlockPos.fromLong(buf.readLong());
+        this.startX = buf.readInt();
+        this.startY = buf.readInt();
+        this.fullWidth = buf.readInt();
+        this.fullHeight = buf.readInt();
         if (buf.readBoolean()) {
             int width = buf.readInt();
             int height = buf.readInt();
-            this.texture = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            this.texture = new int[width][height];
             for (int x = 0; x < width; x++) {
                 for (int y = 0; y < height; y++) {
-                    this.texture.setRGB(x, y, buf.readInt());
+                    this.texture[x][y] = buf.readInt();
                 }
             }
         }
@@ -61,13 +100,19 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
     @Override
     public void toBytes(ByteBuf buf) {
         buf.writeLong(this.pos.toLong());
+        buf.writeInt(this.startX);
+        buf.writeInt(this.startY);
+        buf.writeInt(this.fullWidth);
+        buf.writeInt(this.fullHeight);
         buf.writeBoolean(this.texture != null);
         if (this.texture != null) {
-            buf.writeInt(this.texture.getWidth());
-            buf.writeInt(this.texture.getHeight());
-            for (int x = 0; x < this.texture.getWidth(); x++) {
-                for (int y = 0; y < this.texture.getHeight(); y++) {
-                    buf.writeInt(this.texture.getRGB(x, y));
+            int width = this.texture.length;
+            int height = this.texture[0].length;
+            buf.writeInt(width);
+            buf.writeInt(height);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    buf.writeInt(this.texture[x][y]);
                 }
             }
         }

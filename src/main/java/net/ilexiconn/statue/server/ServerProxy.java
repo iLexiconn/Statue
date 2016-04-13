@@ -8,6 +8,7 @@ import net.minecraftforge.fml.common.ProgressManager;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
 
 import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,7 +36,6 @@ public class ServerProxy {
         if (file == null || !file.isDirectory()) {
             return;
         }
-
         File[] files = file.listFiles();
         if (files != null && files.length != 0) {
             ProgressManager.ProgressBar progressBar = ProgressManager.push("Loading models", files.length);
@@ -43,12 +43,22 @@ public class ServerProxy {
                 progressBar.step(f.getName());
                 if (f.getName().endsWith(".tbl")) {
                     try {
-                        InputStream inputStream = new FileInputStream(f);
-                        TabulaModelContainer container = TabulaModelHandler.INSTANCE.loadTabulaModel(this.getModelJsonStream(f.getAbsolutePath(), inputStream));
-                        InputStream textureStream = this.getTextureStream(inputStream);
-                        Statue.CONTAINER_LIST.add(container);
-                        if (textureStream != null) {
-                            Statue.TEXTURE_LIST.put(container, ImageIO.read(inputStream));
+                        TabulaModelContainer container = null;
+                        BufferedImage texture = null;
+                        ZipInputStream zip = new ZipInputStream(new FileInputStream(f));
+                        ZipEntry entry;
+                        while ((entry = zip.getNextEntry()) != null) {
+                            if (entry.getName().equals("model.json")) {
+                                container = TabulaModelHandler.INSTANCE.loadTabulaModel(zip);
+                            } else if (entry.getName().equals("texture.png")) {
+                                texture = ImageIO.read(zip);
+                            }
+                        }
+                        if (container != null) {
+                            Statue.CONTAINER_LIST.add(container);
+                            if (texture != null) {
+                                Statue.TEXTURE_LIST.put(container, texture);
+                            }
                         }
                     } catch (Exception e) {
                         System.err.println("Failed to load model " + f.getAbsolutePath());
@@ -57,27 +67,5 @@ public class ServerProxy {
             }
             ProgressManager.pop(progressBar);
         }
-    }
-
-    private InputStream getModelJsonStream(String name, InputStream file) throws IOException {
-        ZipInputStream zip = new ZipInputStream(file);
-        ZipEntry entry;
-        while ((entry = zip.getNextEntry()) != null) {
-            if (entry.getName().equals("model.json")) {
-                return zip;
-            }
-        }
-        throw new RuntimeException("No model.json present in " + name);
-    }
-
-    private InputStream getTextureStream(InputStream file) throws IOException {
-        ZipInputStream zip = new ZipInputStream(file);
-        ZipEntry entry;
-        while ((entry = zip.getNextEntry()) != null) {
-            if (entry.getName().equals("texture.png")) {
-                return zip;
-            }
-        }
-        return null;
     }
 }

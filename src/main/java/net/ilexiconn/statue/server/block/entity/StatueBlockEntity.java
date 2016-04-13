@@ -15,6 +15,8 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.List;
 
 public class StatueBlockEntity extends BlockEntity {
     @NBTProperty
@@ -49,7 +51,7 @@ public class StatueBlockEntity extends BlockEntity {
     }
 
     private void updateRenderModel() {
-        if (this.worldObj.isRemote && this.currentModel != null) {
+        if (this.worldObj != null && this.worldObj.isRemote && this.currentModel != null) {
             this.renderModel = new TabulaModel(this.currentModel);
         }
     }
@@ -81,19 +83,39 @@ public class StatueBlockEntity extends BlockEntity {
         this.texture = texture;
         if (worldObj.isRemote) {
             if (sync) {
-                Statue.NETWORK_WRAPPER.sendToServer(new TextureUpdateMessage(this));
+                for (TextureUpdateMessage message : this.getTextureUpdateMessages()) {
+                    Statue.NETWORK_WRAPPER.sendToServer(message);
+                }
             }
             this.updateTexture();
         } else {
             if (sync) {
-                Statue.NETWORK_WRAPPER.sendToAll(new TextureUpdateMessage(this));
+                for (TextureUpdateMessage message : this.getTextureUpdateMessages()) {
+                    Statue.NETWORK_WRAPPER.sendToAll(message);
+                }
             }
         }
     }
 
     @Override
     public Packet<?> getDescriptionPacket() {
-        Statue.NETWORK_WRAPPER.sendToAll(new TextureUpdateMessage(this));
+        for (TextureUpdateMessage message : this.getTextureUpdateMessages()) {
+            Statue.NETWORK_WRAPPER.sendToAll(message);
+        }
         return super.getDescriptionPacket();
+    }
+
+    private List<TextureUpdateMessage> getTextureUpdateMessages() {
+        List<TextureUpdateMessage> messages = new ArrayList<TextureUpdateMessage>();
+        if (this.texture == null) {
+            messages.add(new TextureUpdateMessage(this, 0, 0));
+        } else {
+            for (int x = 0; x < Math.ceil(texture.getWidth() / 256.0); x++) {
+                for (int y = 0; y < Math.ceil(texture.getHeight() / 256.0); y++) {
+                    messages.add(new TextureUpdateMessage(this, x, y));
+                }
+            }
+        }
+        return messages;
     }
 }
