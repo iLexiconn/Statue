@@ -22,7 +22,8 @@ public class StatueBlockEntity extends BlockEntity {
     @NBTProperty
     public TabulaModelContainer currentModel;
 
-    public BufferedImage texture;
+    public BufferedImage loadingTexture;
+    public boolean finishedLoading = true;
 
     @SideOnly(Side.CLIENT)
     private TabulaModel renderModel;
@@ -35,8 +36,6 @@ public class StatueBlockEntity extends BlockEntity {
 
     @Override
     public void onLoad() {
-        this.currentModel = Statue.CONTAINER_LIST.get(0);
-        this.setTexture(Statue.TEXTURE_LIST.get(this.currentModel), false);
     }
 
     @Override
@@ -60,8 +59,9 @@ public class StatueBlockEntity extends BlockEntity {
         if (this.dynamicTexture != null) {
             Minecraft.getMinecraft().getTextureManager().deleteTexture(resourceLocation);
         }
-        if (this.texture != null) {
-            this.dynamicTexture = new DynamicTexture(this.texture);
+        if (this.loadingTexture != null && this.finishedLoading) {
+            this.dynamicTexture = new DynamicTexture(this.loadingTexture);
+            this.loadingTexture = null;
             this.resourceLocation = Minecraft.getMinecraft().getTextureManager().getDynamicTextureLocation("statue_" + pos, dynamicTexture);
         }
     }
@@ -80,19 +80,24 @@ public class StatueBlockEntity extends BlockEntity {
     }
 
     public void setTexture(BufferedImage texture, boolean sync) {
-        this.texture = texture;
+        this.loadingTexture = texture;
+        this.finishedLoading = true;
         if (worldObj.isRemote) {
             if (sync) {
-                for (TextureUpdateMessage message : this.getTextureUpdateMessages()) {
-                    Statue.NETWORK_WRAPPER.sendToServer(message);
-                }
+                new Thread(() -> {
+                    for (TextureUpdateMessage message : StatueBlockEntity.this.getTextureUpdateMessages()) {
+                        Statue.NETWORK_WRAPPER.sendToServer(message);
+                    }
+                }).start();
             }
             this.updateTexture();
         } else {
             if (sync) {
-                for (TextureUpdateMessage message : this.getTextureUpdateMessages()) {
-                    Statue.NETWORK_WRAPPER.sendToAll(message);
-                }
+                new Thread(() -> {
+                    for (TextureUpdateMessage message : StatueBlockEntity.this.getTextureUpdateMessages()) {
+                        Statue.NETWORK_WRAPPER.sendToAll(message);
+                    }
+                }).start();
             }
         }
     }
@@ -107,11 +112,11 @@ public class StatueBlockEntity extends BlockEntity {
 
     private List<TextureUpdateMessage> getTextureUpdateMessages() {
         List<TextureUpdateMessage> messages = new ArrayList<TextureUpdateMessage>();
-        if (this.texture == null) {
+        if (this.loadingTexture == null) {
             messages.add(new TextureUpdateMessage(this, 0, 0));
         } else {
-            for (int x = 0; x < Math.ceil(texture.getWidth() / 256.0); x++) {
-                for (int y = 0; y < Math.ceil(texture.getHeight() / 256.0); y++) {
+            for (int x = 0; x < Math.ceil(loadingTexture.getWidth() / 256.0); x++) {
+                for (int y = 0; y < Math.ceil(loadingTexture.getHeight() / 256.0); y++) {
                     messages.add(new TextureUpdateMessage(this, x, y));
                 }
             }

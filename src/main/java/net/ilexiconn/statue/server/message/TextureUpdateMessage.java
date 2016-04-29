@@ -27,7 +27,7 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
         this.pos = statue.getPos();
         this.startX = sectionX * 256;
         this.startY = sectionY * 256;
-        BufferedImage texture = statue.texture;
+        BufferedImage texture = statue.loadingTexture;
         if (texture != null) {
             int width = Math.min(this.startX + 256, texture.getWidth());
             int height = Math.min(this.startY + 256, texture.getHeight());
@@ -58,20 +58,23 @@ public class TextureUpdateMessage extends AbstractMessage<TextureUpdateMessage> 
             StatueBlockEntity statue = (StatueBlockEntity) tile;
             int[][] messageTexture = message.texture;
             if (messageTexture != null) {
-                BufferedImage texture = statue.texture;
+                BufferedImage texture = statue.loadingTexture;
                 if (texture == null) {
-                    texture = new BufferedImage(message.fullWidth, message.fullHeight, BufferedImage.TYPE_INT_RGB);
+                    texture = new BufferedImage(message.fullWidth, message.fullHeight, BufferedImage.TYPE_INT_ARGB);
                 }
                 for (int x = 0; x < messageTexture.length; x++) {
                     for (int y = 0; y < messageTexture[0].length; y++) {
                         texture.setRGB(message.startX + x, message.startY + y, messageTexture[x][y]);
                     }
                 }
-                if ((message.startX * 256) + messageTexture.length >= message.fullWidth && (message.startY * 256) + messageTexture[0].length >= message.fullHeight) {
+                if (message.startX + messageTexture.length >= message.fullWidth && message.startY + messageTexture[0].length >= message.fullHeight) {
                     statue.setTexture(texture, sync);
                 } else {
-                    statue.texture = texture;
+                    statue.finishedLoading = false;
+                    statue.loadingTexture = texture;
                 }
+                messageTexture = null;
+                message.texture = null;
             } else {
                 statue.setTexture(null, sync);
             }
